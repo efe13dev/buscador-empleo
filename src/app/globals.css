@@ -93,10 +93,19 @@
   }
   body {
     @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image:
       radial-gradient(circle at 12% 0%, oklch(0.43 0.08 242 / 0.16), transparent 28rem),
       radial-gradient(circle at 88% 8%, oklch(0.52 0.13 158 / 0.08), transparent 24rem);
-    background-attachment: fixed;
+    will-change: transform;
+    transform: translateZ(0);
   }
   ::selection {
     background: oklch(0.765 0.166 158 / 0.3);

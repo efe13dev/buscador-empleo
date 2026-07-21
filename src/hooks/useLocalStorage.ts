@@ -21,7 +21,11 @@ export function useLocalStorage<T>(key: string, initial: T) {
   }, [key]);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(key, JSON.stringify(value));
+    if (!loaded) return;
+    const serialized = JSON.stringify(value);
+    if (localStorage.getItem(key) !== serialized) {
+      localStorage.setItem(key, serialized);
+    }
   }, [key, value, loaded]);
 
   return [value, setValue, loaded] as const;
