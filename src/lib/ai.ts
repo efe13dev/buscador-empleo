@@ -16,8 +16,15 @@ const FALLBACK: AiAnalysis = {
   missingSkills: [],
 };
 
+// El SDK reintenta 429/503 con backoff exponencial respetando Retry-After.
+const MAX_RETRIES = 5;
+
 export async function analyzeJob(cfg: AiConfig, job: Job): Promise<AiAnalysis> {
-  const client = new OpenAI({ apiKey: cfg.apiKey, baseURL: cfg.baseURL || undefined });
+  const client = new OpenAI({
+    apiKey: cfg.apiKey,
+    baseURL: cfg.baseURL || undefined,
+    maxRetries: MAX_RETRIES,
+  });
 
   const prompt = [
     `Perfil del candidato:\n${cfg.profile}`,
@@ -25,20 +32,24 @@ export async function analyzeJob(cfg: AiConfig, job: Job): Promise<AiAnalysis> {
     'Evalúa la compatibilidad del candidato con la oferta. Responde SOLO con JSON: {"score": número 0-100, "summary": "2-3 frases", "pros": ["..."], "cons": ["..."], "missingSkills": ["..."]}',
   ].join("\n\n");
 
+  const messages = [{ role: "user" as const, content: prompt }];
+
   let content: string | null | undefined;
   try {
     const res = await client.chat.completions.create({
       model: cfg.model,
-      messages: [{ role: "user", content: prompt }],
+      messages,
       response_format: { type: "json_object" },
       temperature: 0.2,
     });
     content = res.choices[0]?.message?.content;
-  } catch {
-    // ponytail: algunos providers no soportan json_object → reintento sin él
+  } catch (e) {
+    // Solo reintentamos sin json_object si el provider rechaza ese formato (400).
+    // Errores de cuota/servidor (429/503) ya los reintenta el SDK; se propagan.
+    if (!(e instanceof OpenAI.APIError) || e.status !== 400) throw e;
     const res = await client.chat.completions.create({
       model: cfg.model,
-      messages: [{ role: "user", content: prompt }],
+      messages,
       temperature: 0.2,
     });
     content = res.choices[0]?.message?.content;

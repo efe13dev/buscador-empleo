@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
       model: settings.model,
       profile: settings.profile ?? "",
     };
-    analyzed = await mapPool(fresh, 5, async (job) => {
+    // Concurrencia baja: los planes gratuitos (p.ej. Gemini free tier, ~5 req/min)
+    // se saturan con muchas llamadas en paralelo y devuelven 429.
+    analyzed = await mapPool(fresh, 2, async (job) => {
       try {
         return { ...job, ai: await analyzeJob(cfg, job) };
       } catch (e) {
