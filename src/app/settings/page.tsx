@@ -81,7 +81,7 @@ export default function SettingsPage() {
                   id="model"
                   value={settings.model}
                   onChange={(event) => set({ model: event.target.value })}
-                  placeholder="gemini-2.5-flash"
+                  placeholder="gemini-2.0-flash"
                 />
               </div>
             </div>
